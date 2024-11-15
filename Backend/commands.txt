@@ -167,7 +167,7 @@ http://localhost:8000/training_progress
 
 
 # Define the variables for the request
-$hf_token = "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"  # Replace with your Hugging Face token
+$hf_token = "**********************"  # Replace with your Hugging Face token
 $repo_id = "Frinkles/test-repo"  # Replace with your Hugging Face repository ID
 $model_name = "HuggingFaceTB--SmolLM-135M-Instruct"  # Replace with your model folder name
 $server_url = "http://localhost:8000/publish_model/"  # Your FastAPI endpoint URL
