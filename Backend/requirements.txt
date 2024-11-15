@@ -1,0 +1,15 @@
+fastapi
+pydantic
+datasets
+huggingface_hub
+transformers
+trl
+peft
+
+onnx
+gguf
+sentencepiece
+optimum
+
+sse-starlette
+uvicorn[standard]
