@@ -5,7 +5,7 @@ Your all-in-one solution for managing, fine-tuning, and deploying large language
 
 ---
 
-## About Colorful AI Wa
+## About Colorful AI
 
 At **Colorful AI**, we specialize in cutting-edge AI and generative technology solutions. Our mission is to empower developers and businesses by providing intuitive tools for managing and deploying large language models. With **TideAI**, we aim to simplify complex AI workflows, bringing innovation and ease to every user.
 
@@ -46,76 +46,76 @@ To get started with TideAI, ensure the following are installed:
 
 Follow these steps to set up **TideAI**:
 
-### 1. Clone the Repository 📂
-
 ```
+
+1. Clone the Repository 📂
+
 git clone https://github.com/ColorfulAIWave/TideAI.git
 cd TideAI
-2. Frontend Installation 🌐
-Navigate to the frontend directory:
 
+2. Frontend Installation 🌐
+
+Navigate to the frontend directory:
 
 cd Frontend/client
 Install Node.js dependencies:
 
-
 npm install
+
 The frontend requirements are now installed! 🎉
+
 3. Backend Installation ⚙️
+
 Go back to the backend directory:
-
-
-
 cd ../../Backend
+
 Create a Python virtual environment:
-
-
-
 python -m venv venv
 Activate the virtual environment:
 
 For Mac/Linux:
 
-
 source venv/bin/activate
+
 For Windows:
 Open the Windows Command Prompt (required for virtual environment activation).
 Navigate to the Tide directory:
 
-
 cd PATH_TO_TIDE_FOLDER
 Activate the virtual environment:
-
 
 venv\Scripts\activate
 Install backend dependencies:
 
-
-
 pip install -r requirements.txt
+
 Install PyTorch locally based on your system requirements:
 PyTorch Installation Guide
 
 (Optional) Install additional dependencies if needed:
 
-
-
 pip install python-multipart
-Running the Application ▶️
-Start the Backend server:
 
+4. Running the Application ▶️
+
+4(A) Start the Backend server:
 
 uvicorn main:app --reload
 
-Start the Frontend server:
+4(B) Start the Frontend server:
 
 cd Frontend/client
 npm install -g serve
-  serve -s build
-Contact Us 📞
-For any issues, queries, or suggestions, feel free to reach out:
-📧 Email: support@colorfulaiwave.com
-🌐 Website: Colorful AI Wave
-🐞 GitHub Issues: Report an Issue
+serve -s build
 
 ```
+
+---
+
+## Contact Us 📞
+
+For any issues, queries, or suggestions, feel free to reach out:
+
+📧 Email: wave@aiglow.ai
+🌐 Website: https://colorful-inc.jp/
+🐞 GitHub Issues: Report an Issue
