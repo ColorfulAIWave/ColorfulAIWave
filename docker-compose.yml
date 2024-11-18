@@ -1,0 +1,24 @@
+# docker-compose.yml
+
+services:
+  frontend:
+    build:
+      context: ./Frontend/client
+    ports:
+      - "3000:3000"
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./Backend
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+    depends_on:
+      - frontend
+
+networks:
+  app-network:
+    driver: bridge
