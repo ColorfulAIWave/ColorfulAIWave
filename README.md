@@ -1,13 +1,13 @@
 # TideAI
 
-**Welcome to Tide!**  
+**Welcome to TideAI!**  
 Your all-in-one solution for managing, fine-tuning, and deploying large language models with ease.
 
 ---
 
-## About Colorful AI
+## About [COLORFUL](https://colorful-inc.jp/)
 
-At **Colorful AI**, we specialize in cutting-edge AI and generative technology solutions. Our mission is to empower developers and businesses by providing intuitive tools for managing and deploying large language models. With **TideAI**, we aim to simplify complex AI workflows, bringing innovation and ease to every user.
+At **[COLORFUL](https://colorful-inc.jp/)**, we specialize in cutting-edge AI and generative technology solutions. Our mission is to empower developers and businesses by providing intuitive tools for managing and deploying large language models. With **TideAI**, we aim to simplify complex AI workflows, bringing innovation and ease to every user.
 
 ---
 
@@ -117,5 +117,5 @@ serve -s build
 For any issues, queries, or suggestions, feel free to reach out:
 
 📧 Email: wave@aiglow.ai
-🌐 Website: https://colorful-inc.jp/
-🐞 GitHub Issues: Report an Issue
+🌐 Website: [COLORFUL](https://colorful-inc.jp/)
+🐞 GitHub Issues: [Report an Issue](https://github.com/ColorfulAIWave/TideAI/issues)
