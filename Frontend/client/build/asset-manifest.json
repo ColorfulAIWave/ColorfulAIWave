@@ -1,0 +1,16 @@
+{
+  "files": {
+    "main.css": "/static/css/main.3fcb9288.css",
+    "main.js": "/static/js/main.18efc113.js",
+    "static/js/453.258b012d.chunk.js": "/static/js/453.258b012d.chunk.js",
+    "static/media/CLF-logo_main_black.png": "/static/media/CLF-logo_main_black.fd56e18a706be6a8b2e5.png",
+    "index.html": "/index.html",
+    "main.3fcb9288.css.map": "/static/css/main.3fcb9288.css.map",
+    "main.18efc113.js.map": "/static/js/main.18efc113.js.map",
+    "453.258b012d.chunk.js.map": "/static/js/453.258b012d.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.3fcb9288.css",
+    "static/js/main.18efc113.js"
+  ]
+}
