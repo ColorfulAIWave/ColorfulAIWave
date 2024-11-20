@@ -166,20 +166,18 @@ pip install python-multipart
 
 4. **Running the Application** ▶️
 
-4(A) Start the Backend server:
+4(A) **_Start the Backend server:_**
 
 ```
 uvicorn main:app --reload
 ```
 
-4(B) Start the Frontend server:
+4(B) **_Start the Frontend server:_**
 
 ```
 cd Frontend/client
 npm install -g serve
 serve -s build
-```
-
 ```
 
 ---
@@ -191,15 +189,3 @@ For any issues, queries, or suggestions, feel free to reach out:
 📧 Email: wave@aiglow.ai
 🌐 Website: [COLORFUL](https://colorful-inc.jp/)
 🐞 GitHub Issues: [Report an Issue](https://github.com/ColorfulAIWave/TideAI/issues)
-
-```
-
----
-
-```
-
-```
-
-```
-
-```
