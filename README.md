@@ -61,6 +61,8 @@ You can set up **TideAI** in two ways:
 
 Follow these steps to set up TideAI using Docker:
 
+```
+
 1. **Clone the Repository** 📂
 
    git clone https://github.com/ColorfulAIWave/TideAI.git
@@ -74,6 +76,7 @@ Follow these steps to set up TideAI using Docker:
 4. **Run TideAI with Docker Compose**
    Open a terminal, navigate to the TideAI folder, and run:
    docker-compose up
+```
 
 ---
 
@@ -81,6 +84,7 @@ Follow these steps to set up TideAI using Docker:
 
 Follow these steps for manual installation:
 
+```
 1. Clone the Repository 📂
 
 git clone https://github.com/ColorfulAIWave/TideAI.git
@@ -152,4 +156,7 @@ For any issues, queries, or suggestions, feel free to reach out:
 📧 Email: wave@aiglow.ai
 🌐 Website: [COLORFUL](https://colorful-inc.jp/)
 🐞 GitHub Issues: [Report an Issue](https://github.com/ColorfulAIWave/TideAI/issues)
+
+```
+---
 ```
