@@ -1,6 +1,6 @@
 # COLORFUL
 
-![COLORFUL Logo](Frontend/client/public/logo192.png)
+![COLORFUL Logo](Frontend/client/build/logo192.png)
 
 At **[COLORFUL](https://colorful-inc.jp/)**, we specialize in cutting-edge AI and generative technology solutions. Our mission is to empower developers and businesses by providing intuitive tools for managing and deploying large language models. With **TideAI**, we aim to simplify complex AI workflows, bringing innovation and ease to every user.
 
