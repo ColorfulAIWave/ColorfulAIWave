@@ -1,6 +1,7 @@
 <p>
   <img src="screenshots/CLF-logo_main_black.png" alt="Colorful Logo" width="200">
 </p>
+
 At **[COLORFUL](https://colorful-inc.jp/)**, we specialize in cutting-edge AI and generative technology solutions. Our mission is to empower developers and businesses by providing intuitive tools for managing and deploying large language models. With **TideAI**, we aim to simplify complex AI workflows, bringing innovation and ease to every user.
 
 ---
