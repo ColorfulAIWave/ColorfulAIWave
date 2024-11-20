@@ -61,22 +61,24 @@ You can set up **TideAI** in two ways:
 
 Follow these steps to set up TideAI using Docker:
 
-```
-
 1. **Clone the Repository** 📂
 
+```
    git clone https://github.com/ColorfulAIWave/TideAI.git
    cd TideAI
+```
 
 2. **Install Docker**
    Download and install Docker from the official Docker website.
 
 3. **Enable Docker**
    Ensure Docker is running on your system.
+
 4. **Run TideAI with Docker Compose**
    Open a terminal, navigate to the TideAI folder, and run:
+   ```
    docker-compose up
-```
+   ```
 
 ---
 
@@ -84,66 +86,99 @@ Follow these steps to set up TideAI using Docker:
 
 Follow these steps for manual installation:
 
-```
-1. Clone the Repository 📂
+1. **Clone the Repository** 📂
 
+```
 git clone https://github.com/ColorfulAIWave/TideAI.git
 cd TideAI
+```
 
-2. Frontend Installation 🌐
+2. **Frontend Installation** 🌐
 
 Navigate to the frontend directory:
 
+```
 cd Frontend/client
+```
+
 Install Node.js dependencies:
 
-npm install
+```
+npm instal
+```
 
 The frontend requirements are now installed! 🎉
 
-3. Backend Installation ⚙️
+3. **Backend Installation** ⚙️
 
 Go back to the backend directory:
+
+```
 cd ../../Backend
+```
 
 Create a Python virtual environment:
+
+```
 python -m venv venv
+```
+
 Activate the virtual environment:
 
 For Mac/Linux:
 
+```
 source venv/bin/activate
+```
 
 For Windows:
+
 Open the Windows Command Prompt (required for virtual environment activation).
 Navigate to the Tide directory:
 
+```
 cd PATH_TO_TIDE_FOLDER
+```
+
 Activate the virtual environment:
 
+```
 venv\Scripts\activate
+```
+
 Install backend dependencies:
 
+```
 pip install -r requirements.txt
+```
 
 Install PyTorch locally based on your system requirements:
+
+```
 PyTorch Installation Guide
+```
 
 (Optional) Install additional dependencies if needed:
 
+```
 pip install python-multipart
+```
 
-4. Running the Application ▶️
+4. **Running the Application** ▶️
 
 4(A) Start the Backend server:
 
+```
 uvicorn main:app --reload
+```
 
 4(B) Start the Frontend server:
 
+```
 cd Frontend/client
 npm install -g serve
 serve -s build
+```
 
 ```
 
@@ -158,5 +193,13 @@ For any issues, queries, or suggestions, feel free to reach out:
 🐞 GitHub Issues: [Report an Issue](https://github.com/ColorfulAIWave/TideAI/issues)
 
 ```
+
 ---
+
+```
+
+```
+
+```
+
 ```
