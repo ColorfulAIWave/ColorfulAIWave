@@ -23,11 +23,21 @@ WORKDIR /app
 # Copy all files, including pytransform
 COPY . .
 
-# Download PyArmor runtime platform files for the container's architecture
-RUN pyarmor download --platform linux.aarch64
+# Ensure pytransform directory exists before running pyarmor download
+RUN mkdir -p /app/pytransform/platforms && \
+    arch=$(uname -m) && \
+    if [ "$arch" = "x86_64" ]; then \
+        platform="linux.x86_64"; \
+    elif [ "$arch" = "aarch64" ]; then \
+        platform="linux.aarch64"; \
+    else \
+        echo "Unsupported architecture: $arch" && exit 1; \
+    fi && \
+    pyarmor download --platform $platform && \
+    ls -la /app/pytransform/platforms
 
-# Verify the presence of pytransform runtime files
-RUN ls -la /app/pytransform/platforms/linux/aarch64/
+# Verify the parent pytransform directory for troubleshooting
+RUN ls -la /app/pytransform/
 
 # Install Python dependencies from requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
