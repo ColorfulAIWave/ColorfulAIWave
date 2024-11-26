@@ -30,6 +30,8 @@ RUN mkdir -p /app/pytransform/platforms && \
         platform="linux.x86_64"; \
     elif [ "$arch" = "aarch64" ]; then \
         platform="linux.aarch64"; \
+    elif [[ "$arch" == "x86_64" || "$arch" == "amd64" ]]; then \
+        platform="win32.x86_64"; \
     else \
         echo "Unsupported architecture: $arch" && exit 1; \
     fi && \
