@@ -1,4 +1,4 @@
-# platforms: linux.aarch64.3
+# platforms: 
 # advanced: 0
 # suffix: 
 # license: default
@@ -37,6 +37,8 @@ def protect_pytransform():
 
     def check_lib_pytransform():
         platname = pytransform.sys.platform
+        if platname.startswith('darwin'):
+            return
         libname = '_pytransform.dylib' if platname.startswith('darwin') else \
                   '_pytransform.dll' if platname.startswith('win') else \
                   '_pytransform.dll' if platname.startswith('cygwin') else \
@@ -55,7 +57,7 @@ def protect_pytransform():
             else:
                 value += 1217
 
-        if value not in [115859612]:
+        if value not in [146874976]:
             raise RuntimeError('unexpected %s' % filename)
 
     assert_builtin(sum)

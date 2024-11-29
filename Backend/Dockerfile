@@ -15,31 +15,19 @@ RUN apt-get update && apt-get install -y \
 
 # Upgrade pip to the latest version
 RUN pip3 install --upgrade pip
-RUN pip3 install python-multipart pyarmor
+
+# Install PyArmor (specific version 7.x)
+RUN pip3 install pyarmor==7.6.0
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy all files, including pytransform
+# Copy pre-downloaded pytransform runtime files
+COPY ./pytransform /app/pytransform
+RUN ls -la /app/pytransform
+
+# Copy application files
 COPY . .
-
-# Ensure pytransform directory exists before running pyarmor download
-RUN mkdir -p /app/pytransform/platforms && \
-    arch=$(uname -m) && \
-    if [ "$arch" = "x86_64" ]; then \
-        platform="linux.x86_64"; \
-    elif [ "$arch" = "aarch64" ]; then \
-        platform="linux.aarch64"; \
-    elif [[ "$arch" == "x86_64" || "$arch" == "amd64" ]]; then \
-        platform="win32.x86_64"; \
-    else \
-        echo "Unsupported architecture: $arch" && exit 1; \
-    fi && \
-    pyarmor download --platform $platform && \
-    ls -la /app/pytransform/platforms
-
-# Verify the parent pytransform directory for troubleshooting
-RUN ls -la /app/pytransform/
 
 # Install Python dependencies from requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
