@@ -101,10 +101,10 @@ Navigate to the frontend directory:
 cd Frontend/client
 ```
 
-Install Node.js dependencies:
+Install Node.js (version 22.* LTS version from https://nodejs.org/en) and also all the dependencies required for the project using following command:
 
 ```
-npm instal
+npm install
 ```
 
 The frontend requirements are now installed! 🎉
