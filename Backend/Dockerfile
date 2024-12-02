@@ -1,4 +1,4 @@
-# Use a lightweight Ubuntu base image
+# Use a more full-featured Ubuntu base image
 FROM ubuntu:20.04
 
 # Prevent interactive prompts during package installations
@@ -15,22 +15,21 @@ RUN apt-get update && apt-get install -y \
 
 # Upgrade pip to the latest version
 RUN pip3 install --upgrade pip
-
-# Install PyArmor (specific version 7.x)
-RUN pip3 install pyarmor==7.6.0
-
+RUN pip3 install python-multipart
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy pre-downloaded pytransform runtime files
-COPY ./pytransform /app/pytransform
-RUN ls -la /app/pytransform
-
-# Copy application files
-COPY . .
+# Copy requirements.txt to the container
+COPY requirements.txt .
 
 # Install Python dependencies from requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Install the onnxruntime-genai pre-release package
+#RUN pip3 install onnxruntime-genai --pre
+
+# Copy the rest of your FastAPI app code to the container
+COPY . .
 
 # Expose the port for FastAPI
 EXPOSE 8000

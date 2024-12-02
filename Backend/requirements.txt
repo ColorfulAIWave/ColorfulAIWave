@@ -5,7 +5,7 @@ huggingface_hub
 transformers
 trl
 peft
-pyarmor==7.6.0
+
 onnx
 gguf
 sentencepiece
