@@ -101,10 +101,11 @@ Navigate to the frontend directory:
 cd Frontend/client
 ```
 
-Install Node.js (version 22.* LTS version from https://nodejs.org/en) and also all the dependencies required for the project using following command:
+Install Node.js (version 22.\* LTS version from https://nodejs.org/en) and also all the dependencies required for the project using following command:
 
 ```
 npm install
+npm install -g serve
 ```
 
 The frontend requirements are now installed! 🎉
@@ -123,7 +124,7 @@ Create a Python virtual environment:
 python -m venv venv
 ```
 
-Activate the virtual environment:
+Activate the virtual environment (MAC):
 
 For Mac/Linux:
 
@@ -131,16 +132,7 @@ For Mac/Linux:
 source venv/bin/activate
 ```
 
-For Windows:
-
-Open the Windows Command Prompt (required for virtual environment activation).
-Navigate to the Tide directory:
-
-```
-cd PATH_TO_TIDE_FOLDER
-```
-
-Activate the virtual environment:
+Activate the virtual environment (Windows):
 
 ```
 venv\Scripts\activate
@@ -152,17 +144,7 @@ Install backend dependencies:
 pip install -r requirements.txt
 ```
 
-Install PyTorch locally based on your system requirements:
-
-```
-PyTorch Installation Guide
-```
-
-(Optional) Install additional dependencies if needed:
-
-```
-pip install python-multipart
-```
+The backend requirements are now installed! 🎉
 
 4. **Running the Application** ▶️
 
@@ -175,8 +157,6 @@ uvicorn main:app --reload
 4(B) **_Start the Frontend server:_**
 
 ```
-cd Frontend/client
-npm install -g serve
 serve -s build
 ```
 
