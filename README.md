@@ -2,8 +2,9 @@
 
 [COLORFUL](https://colorful-inc.jp/)
 
-![COLORFUL Logo](Frontend/client/build/logo192.png)
-
+<p>
+  <img src="screenshots/CLF-logo_main_black.png" alt="Colorful Logo" width="200">
+</p>
 At **[COLORFUL](https://colorful-inc.jp/)**, we focus on delivering diverse possibilities to the world through IT services. Our mission is to provide a place where all individuality can shine. As a member of a long-established global IT corporate group, Colorful respects each individual and continues to provide new possibilities as a powerful team of colorful personalities.
 
 ---
