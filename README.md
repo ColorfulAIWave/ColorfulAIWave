@@ -2,7 +2,7 @@
 
 [COLORFUL](https://colorful-inc.jp/)
 
-![COLORFUL Logo](Frontend/client/build/public/logo192.png)
+![COLORFUL Logo](Frontend/client/build/logo192.png)
 
 At **[COLORFUL](https://colorful-inc.jp/)**, we focus on delivering diverse possibilities to the world through IT services. Our mission is to provide a place where all individuality can shine. As a member of a long-established global IT corporate group, Colorful respects each individual and continues to provide new possibilities as a powerful team of colorful personalities.
 
