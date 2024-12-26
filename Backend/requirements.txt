@@ -12,5 +12,13 @@ sentencepiece
 optimum
 python-multipart
 
+
+optimum-quanto
+quanto
 sse-starlette
 uvicorn[standard]
+numpy<2
+--extra-index-url https://download.pytorch.org/whl/nightly/cpu
+torch --pre
+torchvision --pre
+torchaudio --pre

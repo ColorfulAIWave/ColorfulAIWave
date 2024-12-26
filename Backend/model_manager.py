@@ -2,6 +2,7 @@ import os
 import logging
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+
 class ModelManager:
     _instance = None
     models_base_path = "./models"  # The base folder for models
@@ -28,7 +29,7 @@ class ModelManager:
         try:
             # Prepend the base path for the models directory
             model_path = os.path.join(self.models_base_path, model_name)
-            
+
             # Check if the model path exists
             if not os.path.exists(model_path):
                 raise RuntimeError(f"Model path '{model_path}' does not exist.")

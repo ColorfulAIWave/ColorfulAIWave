@@ -1,5 +1,11 @@
 from fastapi import APIRouter, HTTPException, Request
-from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments, TrainerCallback
+from transformers import (
+    AutoTokenizer,
+    AutoModelForCausalLM,
+    TrainingArguments,
+    TrainerCallback,
+    QuantoConfig,
+)
 from sse_starlette.sse import EventSourceResponse
 from datasets import load_from_disk
 from pydantic import BaseModel
@@ -14,6 +20,8 @@ import logging
 import traceback
 import asyncio
 import json
+import sys
+from quanto import freeze, qint8, quantize, safe_save
 
 # Initialize logging
 logging.basicConfig(level=logging.ERROR)
@@ -30,6 +38,7 @@ records_file_path = os.path.join(models_directory, "download_records.json")
 
 progress_queue = asyncio.Queue()
 
+
 @router.get("/training_progress")
 async def training_progress():
     async def event_generator():
@@ -38,6 +47,7 @@ async def training_progress():
             yield {"data": progress}
 
     return EventSourceResponse(event_generator())
+
 
 class ProgressCallback(TrainerCallback):
     def __init__(self, progress_queue):
@@ -48,18 +58,22 @@ class ProgressCallback(TrainerCallback):
     def on_step_end(self, args, state, control, **kwargs):
         try:
             # Try to get the loss value; default to 'N/A' if not available
-            loss = state.log_history[-1]['loss'] if 'loss' in state.log_history[-1] else 'N/A'
+            loss = (
+                state.log_history[-1]["loss"]
+                if "loss" in state.log_history[-1]
+                else "N/A"
+            )
         except IndexError:
-            loss = 'N/A'
-        
+            loss = "N/A"
+
         # Construct the progress message
         progress_message = {
             "step": state.global_step,
             "max_steps": state.max_steps,
             "loss": loss,
-            "state": state
+            "state": state,
         }
-        
+
         # Accumulate the log for later retrieval
         self.logs.append(progress_message)
 
@@ -70,7 +84,12 @@ class ProgressCallback(TrainerCallback):
 
     def on_train_end(self, args, state, control, **kwargs):
         # Called at the end of training, send a "Training complete!" message
-        asyncio.run(self.progress_queue.put({"message": "Training complete!", "logs": self.logs}))
+        asyncio.run(
+            self.progress_queue.put(
+                {"message": "Training complete!", "logs": self.logs}
+            )
+        )
+
 
 class ModelLoadRequest(BaseModel):
     model_name: str
@@ -103,46 +122,53 @@ class ModelLoadRequest(BaseModel):
     quantization: bool = False
     onnx: bool = False
 
+
 class QuantizeRequest(BaseModel):
     model_path: str
     bits: int = 8
     dataset_id: str = "wikitext2"
     quant_method: str = "gptq"
 
-def update_download_records(name: str, type_: str, path: str):
+
+def update_download_records(name: str, status: str, type_: str, path: str):
     # with lock:  # Ensure thread-safe access to the file
     with open(records_file_path, "r+") as file:
         # Load existing records
         records = json.load(file)
-        
+
         # Add new record
-        records.append({"name": name, "type": type_, "path": path})
-        
+        records.append({"name": name, "status": status, "type": type_, "path": path})
+
         # Write updated records back to the file
         file.seek(0)
         json.dump(records, file, indent=4)
         file.truncate()  # Remove any leftover content
 
+
 @router.post("/quantize")
 def quantize_model(request: QuantizeRequest):
     try:
         # Load the tokenizer and model
-        tokenizer = AutoTokenizer.from_pretrained(request.model_path, trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(
+            request.model_path, trust_remote_code=True
+        )
         plan_model = AutoModelForCausalLM.from_pretrained(
-            request.model_path,
-            torch_dtype=torch.float16,
-            low_cpu_mem_usage=True
+            request.model_path, torch_dtype=torch.float16, low_cpu_mem_usage=True
         )
 
         # Initialize the quantizer with the current bit setting
-        quantizer = GPTQQuantizer(bits=request.bits, dataset=request.dataset_id, model_seqlen=2048)
+        quantizer = GPTQQuantizer(
+            bits=request.bits, dataset=request.dataset_id, model_seqlen=2048
+        )
         quantizer.quant_method = request.quant_method
 
         # Quantize the model
         gptq_model = quantizer.quantize_model(plan_model, tokenizer)
 
         # Create a directory path for saving the quantized model
-        save_dir = f'./Quantized/{request.model_path.replace("/", "_")}_{request.bits}bit'
+        save_dir = (
+            f'./Quantized/{request.model_path.replace("/", "_")}_{request.bits}bit'
+        )
         os.makedirs(save_dir, exist_ok=True)
 
         # Save the quantized model and tokenizer
@@ -153,6 +179,7 @@ def quantize_model(request: QuantizeRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.post("/train_model")
 def load_model_and_finetune(request: ModelLoadRequest):
@@ -165,10 +192,17 @@ def load_model_and_finetune(request: ModelLoadRequest):
         # Load the model based on the type
         if request.type == "gguf":
             if not request.gguf_file:
-                raise HTTPException(status_code=400, detail="gguf_file must be provided when type is 'gguf'.")
+                raise HTTPException(
+                    status_code=400,
+                    detail="gguf_file must be provided when type is 'gguf'.",
+                )
 
-            tokenizer = AutoTokenizer.from_pretrained(model_path, gguf_file=request.gguf_file)
-            model = AutoModelForCausalLM.from_pretrained(model_path, gguf_file=request.gguf_file)
+            tokenizer = AutoTokenizer.from_pretrained(
+                model_path, gguf_file=request.gguf_file
+            )
+            model = AutoModelForCausalLM.from_pretrained(
+                model_path, gguf_file=request.gguf_file
+            )
 
         elif request.type == "huggingface":
             tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -177,12 +211,14 @@ def load_model_and_finetune(request: ModelLoadRequest):
                 "trust_remote_code": True,
                 "attn_implementation": request.attn_implementation,
                 "torch_dtype": dtype,
-                "device_map": 'auto'
+                "device_map": "auto",
             }
             model = AutoModelForCausalLM.from_pretrained(model_path, **model_kwargs)
 
         else:
-            raise HTTPException(status_code=400, detail=f"Unsupported type '{request.type}'.")
+            raise HTTPException(
+                status_code=400, detail=f"Unsupported type '{request.type}'."
+            )
 
         # Load the dataset
         processed_dataset = load_from_disk(dataset_path)
@@ -200,8 +236,8 @@ def load_model_and_finetune(request: ModelLoadRequest):
 
         # Split the dataset into train and test sets
         split_dataset = processed_dataset.train_test_split(test_size=0.2)
-        train_dataset = split_dataset['train']
-        test_dataset = split_dataset['test']
+        train_dataset = split_dataset["train"]
+        test_dataset = split_dataset["test"]
 
         # Get the column names for removal later
         column_names = list(train_dataset.features)
@@ -246,7 +282,7 @@ def load_model_and_finetune(request: ModelLoadRequest):
             "save_total_limit": request.save_total_limit,
             "seed": request.seed,
             "gradient_checkpointing": request.gradient_checkpointing,
-            "gradient_checkpointing_kwargs":{"use_reentrant": False},
+            "gradient_checkpointing_kwargs": {"use_reentrant": False},
             "gradient_accumulation_steps": 1,
             "warmup_ratio": 0.2,
         }
@@ -273,7 +309,7 @@ def load_model_and_finetune(request: ModelLoadRequest):
             dataset_text_field="text",  # The field now holds the chat template output
             tokenizer=tokenizer,
             callbacks=[ProgressCallback(progress_queue)],
-            packing=True
+            packing=True,
         )
 
         # Start the training process
@@ -283,7 +319,7 @@ def load_model_and_finetune(request: ModelLoadRequest):
         trainer.save_metrics("train", metrics)
         trainer.save_state()
 
-        trained_model_path = 'models/jp-smolLM-trained-v1'
+        trained_model_path = "models/jp-smolLM-trained-v1"
         trainer.save_model(trained_model_path)
 
         if request.production_training:
@@ -296,19 +332,27 @@ def load_model_and_finetune(request: ModelLoadRequest):
 
             # Reload the original model and the adapter
             tokenizer = AutoTokenizer.from_pretrained(request.model_name)
-            original_model = AutoModelForCausalLM.from_pretrained(request.model_name, **model_kwargs)
-            adapter_model = PeftModel.from_pretrained(original_model, trained_model_path)
+            original_model = AutoModelForCausalLM.from_pretrained(
+                request.model_name, **model_kwargs
+            )
+            adapter_model = PeftModel.from_pretrained(
+                original_model, trained_model_path
+            )
 
             # Merge the adapter with the original model
-            adapter_model.save_pretrained('./merged_models/japaneseV1')
-            tokenizer.save_pretrained('./merged_models/japaneseV1')
+            adapter_model.save_pretrained("./merged_models/japaneseV1")
+            tokenizer.save_pretrained("./merged_models/japaneseV1")
 
             # Convert the merged model to ONNX format
-            os.system('python -m onnxruntime_genai.models.builder -i "./merged_models/japaneseV1" -o "./ONNX/japaneseV1_directML" -p int4 -e cpu')
+            os.system(
+                'python -m onnxruntime_genai.models.builder -i "./merged_models/japaneseV1" -o "./ONNX/japaneseV1_directML" -p int4 -e cpu'
+            )
 
             # Clean up
             shutil.rmtree(trained_model_path)  # Delete the adapter model directory
-            shutil.rmtree('./merged_models/japaneseV1')  # Optionally delete the merged model directory
+            shutil.rmtree(
+                "./merged_models/japaneseV1"
+            )  # Optionally delete the merged model directory
 
         del trainer
         del model
@@ -316,46 +360,62 @@ def load_model_and_finetune(request: ModelLoadRequest):
         torch.cuda.empty_cache()
         gc.collect()
 
-        return {"status": "success", "message": "Model finetuned successfully", "metrics": metrics}
+        return {
+            "status": "success",
+            "message": "Model finetuned successfully",
+            "metrics": metrics,
+        }
 
     except Exception as e:
         logger.error(f"Error during model fine-tuning: {str(e)}")
         logger.error(traceback.format_exc())  # Log the full stack trace
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 
 @router.post("/process_model")
 def complete_training(request: ModelLoadRequest, fastapi_request: Request):
-    
+
     try:
         fastapi_request.app.state.is_training = True
         model_path = os.path.join(models_directory, request.model_name)
         dataset_path = os.path.join(SAVE_DIR, request.dataset_path)
         if request.finetuning or request.training:
             # Define the model and dataset paths from the request
-            
 
             # Check if the paths exist
             if not os.path.exists(model_path):
-                raise HTTPException(status_code=404, detail=f"Model path {model_path} does not exist.")
+                raise HTTPException(
+                    status_code=404, detail=f"Model path {model_path} does not exist."
+                )
             if not os.path.exists(dataset_path):
-                raise HTTPException(status_code=404, detail=f"Dataset path {dataset_path} does not exist.")
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Dataset path {dataset_path} does not exist.",
+                )
 
             # Load the tokenizer and model
             tokenizer = AutoTokenizer.from_pretrained(model_path)
+            # Check if the tokenizer has an eos_token and set it as pad_token if so
+            if tokenizer.eos_token:
+                tokenizer.pad_token = tokenizer.eos_token
+            else:
+                # Add a new padding token if eos_token doesn't exist
+                tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+                tokenizer.pad_token = "[PAD]"
+
             model_kwargs = dict(
                 use_cache=False,
                 trust_remote_code=True,
                 attn_implementation=request.attn_implementation,  # From request
                 torch_dtype=torch.bfloat16,
-                device_map='auto'
+                device_map="auto",
             )
             model = AutoModelForCausalLM.from_pretrained(model_path, **model_kwargs)
 
             # Check if the model is loaded on the 'meta' device and move it to 'cuda' or 'cpu'
-            if model.device == torch.device('meta'):
+            if model.device == torch.device("meta"):
                 logging.info("Model is on the 'meta' device, moving to 'cuda'.")
-                model.to_empty(device=torch.device('cuda'))  # Move model to GPU
+                model.to_empty(device=torch.device("cuda"))  # Move model to GPU
 
             # Load the dataset
             processed_dataset = load_from_disk(dataset_path)
@@ -363,16 +423,25 @@ def complete_training(request: ModelLoadRequest, fastapi_request: Request):
             # Dataset processing step (template application)
             def apply_chat_template(example, tokenizer):
                 messages = example["messages"]
+
+                # If the first message isn't system, add an empty user message
                 if messages[0]["role"] != "system":
                     messages.insert(0, {"role": "user", "content": ""})
-                example["text"] = tokenizer.apply_chat_template(
-                    messages, tokenize=False, add_generation_prompt=False)
+
+                # Manually format the chat content (this can vary based on your needs)
+                formatted_messages = [
+                    f"{msg['role']}: {msg['content']}" for msg in messages
+                ]
+
+                # Concatenate the messages to form the 'text' field
+                example["text"] = " ".join(formatted_messages)
+
                 return example
 
             # Split the dataset into training and test sets
             split_dataset = processed_dataset.train_test_split(test_size=0.2)
-            train_dataset = split_dataset['train']
-            test_dataset = split_dataset['test']
+            train_dataset = split_dataset["train"]
+            test_dataset = split_dataset["test"]
 
             # Remove columns
             column_names = list(train_dataset.features)
@@ -441,31 +510,38 @@ def complete_training(request: ModelLoadRequest, fastapi_request: Request):
                 max_seq_length=2048,
                 dataset_text_field="text",
                 tokenizer=tokenizer,
-                packing=True
+                packing=True,
             )
 
         if request.finetuning:
             # Start the training process
             train_result = trainer.train()
-            finetune_path = model_path+"_finetuned_Lora_1"
-            finetune_name = request.model_name+"_finetuned_Lora_1"
+            finetune_path = model_path + "_finetuned_Lora_1"
+            finetune_name = request.model_name + "_finetuned_Lora_1"
             trainer.save_model(finetune_path)
-            update_download_records(name=finetune_name, type_="Lora", path=finetune_path)
+            update_download_records(
+                name=finetune_name, status="finetuned", type_="Lora", path=finetune_path
+            )
 
         if request.training:
             train_result = trainer.train()
-            finetune_path = model_path+"_finetuned_Lora_1"
-            finetune_name = request.model_name+"_finetuned_Lora_1"
+            finetune_path = model_path + "_finetuned_Lora_1"
+            finetune_name = request.model_name + "_finetuned_Lora_1"
             trainer.save_model(finetune_path)
             adapter_id = finetune_path
             config = PeftConfig.from_pretrained(adapter_id)
             quantized_model = PeftModel.from_pretrained(model, adapter_id)
             quantized_model = quantized_model.merge_and_unload()
-            trained_path = model_path+"_trained_model_1"
-            trained_name = request.model_name+"_trained_model_1"
+            trained_path = model_path + "_trained_model_1"
+            trained_name = request.model_name + "_trained_model_1"
             quantized_model.save_pretrained(trained_path)
             tokenizer.save_pretrained(trained_path)
-            update_download_records(name=trained_name, type_="Huggingface", path=trained_path)
+            update_download_records(
+                name=trained_name,
+                type_="Huggingface",
+                status="trained",
+                path=trained_path,
+            )
 
         if request.quantization:
             # Load the tokenizer and model
@@ -473,54 +549,96 @@ def complete_training(request: ModelLoadRequest, fastapi_request: Request):
                 quantized_model
             except NameError:
                 quantized_model = None
-            if quantized_model is None:
-                tokenizer = AutoTokenizer.from_pretrained(model_path)
-                model_kwargs = dict(
-                    use_cache=False,
-                    trust_remote_code=True,
-                    attn_implementation=request.attn_implementation,  # From request
-                    torch_dtype=torch.bfloat16,
-                    device_map='auto'
-                )
-                quantized_model = AutoModelForCausalLM.from_pretrained(model_path, **model_kwargs)
 
-                # Dynamically get quantization bits, dataset, and method from request
-                quantizer = GPTQQuantizer(
-                    bits=request.bits,  # Bits from the request
-                    dataset=request.dataset_id,  # Dataset from the request
-                    model_seqlen=2048
-                )
-                quantizer.quant_method = request.quant_method  # Quantization method
+            if sys.platform == "darwin":
+                # quantization_config = QuantoConfig(weights="int8")
 
-                # Quantize the model
-                gptq_model = quantizer.quantize_model(quantized_model, tokenizer)
+                gptq_model = AutoModelForCausalLM.from_pretrained(
+                    model_path,
+                    # quantization_config= quantization_config,
+                    low_cpu_mem_usage=True,
+                )
+                print("You are here")
+                quantize(gptq_model, weights=qint8)
+                freeze(gptq_model)
+                print("Step 2")
+                gptq_save_path = model_path + f"_quantized_model_{request.bits}_bits"
+                gptq_name = request.model_name + f"_quantized_model_{request.bits}_bits"
+                print("Step 3")
+                os.makedirs(gptq_save_path, exist_ok=True)
+                print("step 4")
+                safe_save(
+                    gptq_model.state_dict(),
+                    gptq_save_path + "/" + gptq_name + ".safetensors",
+                )
+                print("step 5")
+                print("Name:" + gptq_name)
+                print("Path:" + gptq_save_path)
+                update_download_records(
+                    name=gptq_name,
+                    status="Quantized",
+                    type_="Quantized",
+                    path=gptq_save_path,
+                )
+                print("step 6")
             else:
-                # Dynamically get quantization bits, dataset, and method from request
-                quantizer = GPTQQuantizer(
-                    bits=request.bits,  # Bits from the request
-                    dataset=request.dataset_id,  # Dataset from the request
-                    model_seqlen=2048
+
+                if quantized_model is None:
+                    tokenizer = AutoTokenizer.from_pretrained(model_path)
+                    model_kwargs = dict(
+                        use_cache=False,
+                        trust_remote_code=True,
+                        attn_implementation=request.attn_implementation,  # From request
+                        torch_dtype=torch.bfloat16,
+                        device_map="auto",
+                    )
+                    quantized_model = AutoModelForCausalLM.from_pretrained(
+                        model_path, **model_kwargs
+                    )
+
+                    # Dynamically get quantization bits, dataset, and method from request
+                    quantizer = GPTQQuantizer(
+                        bits=request.bits,  # Bits from the request
+                        dataset=request.dataset_id,  # Dataset from the request
+                        model_seqlen=2048,
+                    )
+                    quantizer.quant_method = request.quant_method  # Quantization method
+
+                    # Quantize the model
+                    gptq_model = quantizer.quantize_model(quantized_model, tokenizer)
+                else:
+                    # Dynamically get quantization bits, dataset, and method from request
+                    quantizer = GPTQQuantizer(
+                        bits=request.bits,  # Bits from the request
+                        dataset=request.dataset_id,  # Dataset from the request
+                        model_seqlen=2048,
+                    )
+                    quantizer.quant_method = request.quant_method  # Quantization method
+
+                    # Quantize the model
+                    gptq_model = quantizer.quantize_model(quantized_model, tokenizer)
+
+                # Save the quantized model
+                gptq_save_path = model_path + f"_quantized_model_{request.bits}_bits"
+                gptq_name = request.model_name + f"_quantized_model_{request.bits}_bits"
+                gptq_model.save_pretrained(gptq_save_path)
+                tokenizer.save_pretrained(gptq_save_path)
+                update_download_records(
+                    name=gptq_name, type_="Quantized", path=gptq_save_path
                 )
-                quantizer.quant_method = request.quant_method  # Quantization method
-
-                # Quantize the model
-                gptq_model = quantizer.quantize_model(quantized_model, tokenizer)
-
-            # Save the quantized model
-            gptq_save_path = model_path+f"_quantized_model_{request.bits}_bits"
-            gptq_name = request.model_name+f"_quantized_model_{request.bits}_bits"
-            gptq_model.save_pretrained(gptq_save_path)
-            tokenizer.save_pretrained(gptq_save_path)
-            update_download_records(name=gptq_name, type_="Quantized", path=gptq_save_path)
 
         if request.onnx:
             # Convert to ONNX if necessary
-            onnx_path = model_path+"_onnx"
-            onnx_name = request.model_name+"_onnx"
+            onnx_path = model_path + "_onnx"
+            onnx_name = request.model_name + "_onnx"
             if not request.training:
                 trained_path = model_path
-            os.system(f'python -m onnxruntime_genai.models.builder -m {trained_path} -o {onnx_path} -p int4 -e cpu')
-            update_download_records(name=onnx_name, type_="ONNX", path=onnx_path )
+            os.system(
+                f"python -m onnxruntime_genai.models.builder -m {trained_path} -o {onnx_path} -p int4 -e cpu"
+            )
+            update_download_records(
+                name=onnx_name, status="processed to ONNX", type_="ONNX", path=onnx_path
+            )
         fastapi_request.app.state.is_training = False
 
         return {"status": "success", "message": "Training and quantization complete"}
@@ -529,8 +647,6 @@ def complete_training(request: ModelLoadRequest, fastapi_request: Request):
         fastapi_request.app.state.is_training = False
         logger.error(f"Error in complete training: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
 
 
 @router.post("/finetune")
@@ -542,10 +658,17 @@ def load_model_and_finetune(request: ModelLoadRequest):
         # Load the model based on the type
         if request.type == "gguf":
             if not request.gguf_file:
-                raise HTTPException(status_code=400, detail="gguf_file must be provided when type is 'gguf'.")
+                raise HTTPException(
+                    status_code=400,
+                    detail="gguf_file must be provided when type is 'gguf'.",
+                )
 
-            tokenizer = AutoTokenizer.from_pretrained(request.model_name, gguf_file=request.gguf_file)
-            model = AutoModelForCausalLM.from_pretrained(request.model_name, gguf_file=request.gguf_file)
+            tokenizer = AutoTokenizer.from_pretrained(
+                request.model_name, gguf_file=request.gguf_file
+            )
+            model = AutoModelForCausalLM.from_pretrained(
+                request.model_name, gguf_file=request.gguf_file
+            )
 
         elif request.type == "huggingface":
             tokenizer = AutoTokenizer.from_pretrained(request.model_name)
@@ -554,12 +677,16 @@ def load_model_and_finetune(request: ModelLoadRequest):
                 "trust_remote_code": True,
                 "attn_implementation": request.attn_implementation,
                 "torch_dtype": dtype,
-                "device_map": 'cuda'
+                "device_map": "cuda",
             }
-            model = AutoModelForCausalLM.from_pretrained(request.model_name, **model_kwargs)
-        
+            model = AutoModelForCausalLM.from_pretrained(
+                request.model_name, **model_kwargs
+            )
+
         else:
-            raise HTTPException(status_code=400, detail=f"Unsupported type '{request.type}'.")
+            raise HTTPException(
+                status_code=400, detail=f"Unsupported type '{request.type}'."
+            )
 
         # Load the dataset
         raw_dataset = load_from_disk(request.dataset_path)
@@ -568,28 +695,30 @@ def load_model_and_finetune(request: ModelLoadRequest):
         def append_system_message(example):
             messages = example["messages"]
             if messages[0]["role"] != "system":
-                messages.insert(0, {"role": "system", "content": "System message placeholder"})
+                messages.insert(
+                    0, {"role": "system", "content": "System message placeholder"}
+                )
             example["messages"] = messages
             return example
 
         # Check if the dataset has a 'train' split
-        if 'train' in raw_dataset:
-            processed_dataset = raw_dataset['train'].map(
+        if "train" in raw_dataset:
+            processed_dataset = raw_dataset["train"].map(
                 append_system_message,
                 num_proc=10,
-                desc="Appending system message to conversations (train)"
+                desc="Appending system message to conversations (train)",
             )
         else:
             # If there is no 'train' split, apply to the entire dataset
             processed_dataset = raw_dataset.map(
                 append_system_message,
                 num_proc=10,
-                desc="Appending system message to conversations (full dataset)"
+                desc="Appending system message to conversations (full dataset)",
             )
 
         split_dataset = processed_dataset.train_test_split(test_size=0.2)
-        train_dataset = split_dataset['train']
-        test_dataset = split_dataset['test']
+        train_dataset = split_dataset["train"]
+        test_dataset = split_dataset["test"]
 
         # Training configuration
         training_config = {
@@ -611,7 +740,7 @@ def load_model_and_finetune(request: ModelLoadRequest):
             "save_total_limit": request.save_total_limit,
             "seed": request.seed,
             "gradient_checkpointing": request.gradient_checkpointing,
-            "gradient_checkpointing_kwargs":{"use_reentrant": False},
+            "gradient_checkpointing_kwargs": {"use_reentrant": False},
             "gradient_accumulation_steps": 1,
             "warmup_ratio": 0.2,
         }
@@ -638,7 +767,7 @@ def load_model_and_finetune(request: ModelLoadRequest):
             dataset_text_field="messages",
             tokenizer=tokenizer,
             # callbacks=[ProgressCallback(progress_queue)],
-            packing=True
+            packing=True,
         )
 
         # Start the training process
@@ -648,7 +777,7 @@ def load_model_and_finetune(request: ModelLoadRequest):
         trainer.save_metrics("train", metrics)
         trainer.save_state()
 
-        trained_model_path = 'models/jp-smolLM-trained-v1'
+        trained_model_path = "models/jp-smolLM-trained-v1"
         trainer.save_model(trained_model_path)
 
         if request.production_training:
@@ -661,19 +790,27 @@ def load_model_and_finetune(request: ModelLoadRequest):
 
             # Reload the original model and the adapter
             tokenizer = AutoTokenizer.from_pretrained(request.model_name)
-            original_model = AutoModelForCausalLM.from_pretrained(request.model_name, **model_kwargs)
-            adapter_model = PeftModel.from_pretrained(original_model, trained_model_path)
+            original_model = AutoModelForCausalLM.from_pretrained(
+                request.model_name, **model_kwargs
+            )
+            adapter_model = PeftModel.from_pretrained(
+                original_model, trained_model_path
+            )
 
             # Merge the adapter with the original model
-            adapter_model.save_pretrained('./merged_models/japaneseV1')
-            tokenizer.save_pretrained('./merged_models/japaneseV1')
+            adapter_model.save_pretrained("./merged_models/japaneseV1")
+            tokenizer.save_pretrained("./merged_models/japaneseV1")
 
             # Convert the merged model to ONNX format
-            os.system('python -m onnxruntime_genai.models.builder -i "./merged_models/japaneseV1" -o "./ONNX/japaneseV1_directML" -p int4 -e cpu')
+            os.system(
+                'python -m onnxruntime_genai.models.builder -i "./merged_models/japaneseV1" -o "./ONNX/japaneseV1_directML" -p int4 -e cpu'
+            )
 
             # Clean up
             shutil.rmtree(trained_model_path)  # Delete the adapter model directory
-            shutil.rmtree('./merged_models/japaneseV1')  # Optionally delete the merged model directory
+            shutil.rmtree(
+                "./merged_models/japaneseV1"
+            )  # Optionally delete the merged model directory
 
         del trainer
         del model
@@ -681,7 +818,11 @@ def load_model_and_finetune(request: ModelLoadRequest):
         torch.cuda.empty_cache()
         gc.collect()
 
-        return {"status": "success", "message": "Model finetuned successfully", "metrics": metrics}
+        return {
+            "status": "success",
+            "message": "Model finetuned successfully",
+            "metrics": metrics,
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

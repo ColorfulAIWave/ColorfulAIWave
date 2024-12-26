@@ -35,14 +35,14 @@ if not os.path.exists(records_file_path):
         json.dump([], records_file)  # Initialize with an empty list
 
 
-def update_download_records(name: str, type_: str, path: str):
+def update_download_records(name: str, status: str, type_: str, path: str):
     # with lock:  # Ensure thread-safe access to the file
     with open(records_file_path, "r+") as file:
         # Load existing records
         records = json.load(file)
 
         # Add new record
-        records.append({"name": name, "type": type_, "path": path})
+        records.append({"name": name, "status": status, "type": type_, "path": path})
 
         # Write updated records back to the file
         file.seek(0)
@@ -121,23 +121,27 @@ async def list_saved_models():
     try:
         with open(records_file_path, "r") as file:
             records = json.load(file)
-        # Extract only the 'name' field for each model
-        model_names = [record["name"] for record in records]
-        return model_names
+        # Extract only the 'name' field for models with status "untrained"
+        untrained_model_names = [
+            record["name"] for record in records if record.get("status") == "untrained"
+        ]
+        return untrained_model_names
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error reading the download records: {e}"
         )
 
 
-@router.get("/list_trained_models/")
-async def list_trained_models():
+@router.get("/list_chat_models/")
+async def list_chat_models():
     try:
         with open(records_file_path, "r") as file:
             records = json.load(file)
-        # Extract only the 'name' field for each model
-        model_names = [record["name"] for record in records]
-        return model_names
+        # Extract only the 'name' field for models with status "untrained"
+        untrained_model_names = [
+            record["name"] for record in records if record.get("type") == "huggingface"
+        ]
+        return untrained_model_names
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error reading the download records: {e}"
@@ -149,9 +153,11 @@ async def list_trained_models():
     try:
         with open(records_file_path, "r") as file:
             records = json.load(file)
-        # Extract only the 'name' field for each model
-        model_names = [record["name"] for record in records]
-        return model_names
+        # Extract only the 'name' field for models with status "untrained"
+        trained_model_names = [
+            record["name"] for record in records if record.get("status") != "untrained"
+        ]
+        return trained_model_names
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Error reading the download records: {e}"
@@ -173,7 +179,10 @@ async def upload_file(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         buffer.write(await file.read())
     update_download_records(
-        name=file_name.replace("/", "--"), type_="GGUF", path=file_path
+        name=file_name.replace("/", "--"),
+        status="untrained",
+        type_="GGUF",
+        path=file_path,
     )
     return {
         "filename": file.filename,
@@ -240,7 +249,9 @@ async def download_repo(request: RepoDownloadRequest):
             )
 
         # Update download records after successful execution
-        update_download_records(name=repo_name, type_=model_type, path=model_directory)
+        update_download_records(
+            name=repo_name, status="untrained", type_=model_type, path=model_directory
+        )
 
         # Return success message
         return {
@@ -322,7 +333,10 @@ async def convert_gguf_to_hf(request: GGUFConversionRequest, fastapi_request: Re
             file.write(response.content)
 
         update_download_records(
-            name=model_id.replace("/", "--"), type_="GGUF", path=file_path
+            name=model_id.replace("/", "--"),
+            status="untrained",
+            type_="GGUF",
+            path=file_path,
         )
         fastapi_request.app.state.is_downloading = False
 
@@ -365,3 +379,20 @@ async def download(filename: str):
         )
 
     # Optionally, you can add a cleanup step to delete the zip file after it has been served.
+
+
+data_file = os.path.join(
+    "./", "model_data.json"
+)  # Use os.path.join to handle file path
+
+
+@router.get("/models_info")
+async def get_models():
+    try:
+        with open(data_file, "r") as file:
+            data = json.load(file)  # Load the JSON data from the file
+
+        return data  # Return the data to the client
+    except Exception as e:
+        print(f"Error reading the file: {e}")
+        return {"error": "Failed to load model data."}
