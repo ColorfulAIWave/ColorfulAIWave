@@ -44,6 +44,29 @@ Tide simplifies managing, fine-tuning, and deploying large language models (LLMs
 
 ---
 
+# Premium
+
+For users seeking advanced functionalities and premium support, a paid version is also available. This premium version unlocks additional features, including enhanced model support, advanced workflow functionalities, and the capability to run local LLMs on mobile devices via the innovative `publishModelAPK` feature.
+
+## Feature Comparison
+
+| Feature                                                               | Free Version | Premium Version |
+| --------------------------------------------------------------------- | ------------ | --------------- |
+| Basic Model Support (HuggingFace Format)                              | ✓            | ✓               |
+| Expanded Model Support                                                | X            | ✓ (GGUF, ONNX)  |
+| Standard Workflow Tools (Model Training, and Quantization)            | ✓            | ✓               |
+| Advanced Workflow Functionalities (Production-ready conversion tools) | X            | ✓               |
+| `publishModelAPK` (Mobile LLMs)                                       | X            | ✓               |
+
+## Pricing
+
+- **Free**
+- **Contact**: [wave@aiglow.ai](mailto:wave@aiglow.ai)
+
+To experience the premium version and access features like `publishModelAPK`, contact us directly at [wave@aiglow.ai](mailto:wave@aiglow.ai).
+
+---
+
 ## Why Choose Tide? 🌟
 
 1. **Privacy and Security:** Run LLMs directly on your machine, ensuring privacy and control.
