@@ -1,5 +1,8 @@
 {
-  "huggingface": [{ "repo_id": "HuggingFaceTB/SmolLM2-135M" }],
+  "huggingface": [
+    { "repo_id": "HuggingFaceTB/SmolLM2-135M-Instruct" },
+    { "repo_id": "HuggingFaceTB/SmolLM2-360M-Instruct" }
+  ],
   "onnx": [
     { "repo_id": "Qdrant/resnet50-onnx" },
     { "repo_id": "microsoft/Phi-3-mini-4k-instruct-onnx" }
